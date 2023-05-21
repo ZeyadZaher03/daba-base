@@ -1,11 +1,4 @@
-<?php
 
-session_start();
-// redirect if user is not logged in
-if (empty($_SESSION["user_fname"])) {
-  header("location: ./index.php");
-}
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,41 +48,18 @@ if (empty($_SESSION["user_fname"])) {
     $resultData = getPosts($conn);
     while ($row = mysqli_fetch_assoc($resultData)) {
 
-      $post_id = $row["post_id"];
-      $creator_name = $row["creator_name"];
-      $activity_name = $row["activity_name"];
-      $creator_id = $row["creator_id"];
-      $activity_id = $row["activity_id"];
+      $post_id = $row["PostId"];
       $title = $row["title"];
       $likes = $row["likes"];
-      $is_created = $row["is_created"];
       ?>
         <div class="post">
           
-          <?php if (!$is_created) { ?>
-            <span> <?php echo "shared by: " . $activity_name; ?></span>
-          <?php } ?>
-
-          <span> <?php echo "created by: " . $creator_name; ?></span>
-
           <p class="title"><?php echo $title; ?></p>
 
           <div>
             <p>likes: <?php echo (string) $likes; ?></p>
             <p>shares: <?php echo (string) $likes; ?></p>
           </div>
-          <?php if (
-            $_SESSION["user_id"] !== $creator_id &&
-            $_SESSION["user_id"] !== $activity_id
-          ) { ?>
-            <form action="./includes/share.inc.php" method="post" >
-              <div class="actions">
-                <button>Like</button>
-                <button name="post_id" type="submit" value="<?php echo $post_id; ?>">Share</button>
-              </div>
-            </form>
-          <?php } ?>
-
         </div>
     <?php
     }

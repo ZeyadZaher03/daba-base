@@ -12,8 +12,7 @@ function emptyInputSignup(
   $month,
   $day,
   $password,
-  $cpassword,
-  $gender
+  $cpassword
 ) {
   $result = false;
   if (
@@ -51,7 +50,7 @@ function pwdMatch($password, $cpassword)
 
 function uidExists($conn, $email)
 {
-  $sql = "SELECT * FROM users WHERE email = ?";
+  $sql = "SELECT * FROM login WHERE email = ?";
   $stmt = mysqli_stmt_init($conn);
   if (!mysqli_stmt_prepare($stmt, $sql)) {
     header("location: ./../index.php?error=uidExists");
@@ -72,6 +71,23 @@ function uidExists($conn, $email)
   mysqli_stmt_close($stmt);
 }
 
+function createLogin($conn, $email, $password)
+{
+  $sql = "INSERT INTO login(email, password) VALUES (?, ?);";
+  $stmt = mysqli_stmt_init($conn);
+  if (!mysqli_stmt_prepare($stmt, $sql)) {
+    header("location: ./../index.php?error=createUser");
+    exit();
+  }
+
+  $hashedPwd = password_hash($password, PASSWORD_DEFAULT);
+
+  mysqli_stmt_bind_param($stmt, "ss", $email, $hashedPwd);
+
+  mysqli_stmt_execute($stmt);
+  mysqli_stmt_close($stmt);
+}
+
 function createUser(
   $conn,
   $fname,
@@ -82,9 +98,11 @@ function createUser(
   $day,
   $password
 ) {
+  createLogin($conn, $email, $password);
+  $login_id = mysqli_insert_id($conn);
   $date = $year . "-" . $month . "-" . $day;
   $sql =
-    "INSERT INTO users(firstName, lastname, DOB, password, email) VALUES (?, ?, ?, ?, ?);";
+    "INSERT INTO user_(Fname, Lname, DOB, password, login_id) VALUES (?, ?, ?, ?, ?);";
   $stmt = mysqli_stmt_init($conn);
   if (!mysqli_stmt_prepare($stmt, $sql)) {
     header("location: ./../index.php?error=createUser");
@@ -100,7 +118,7 @@ function createUser(
     $lname,
     $date,
     $hashedPwd,
-    $email
+    $login_id
   );
 
   mysqli_stmt_execute($stmt);
@@ -108,9 +126,9 @@ function createUser(
   $uidExists = uidExists($conn, $email);
   session_start();
   $_SESSION["user_id"] = $uidExists["id"];
-  $_SESSION["user_fname"] = $uidExists["fname"];
-  $_SESSION["user_lname"] = $uidExists["lname"];
-  $_SESSION["user_email"] = $uidExists["email"];
+  $_SESSION["user_fname"] = $uidExists["Fname"];
+  $_SESSION["user_lname"] = $uidExists["Lname"];
+  $_SESSION["user_email"] = $email;
   header("location: ./../home.php");
   exit();
 }
@@ -166,7 +184,7 @@ function emptyInputPost($userId, $title)
 function createPostRelationship($conn, $userId, $postId, $is_created)
 {
   $sql =
-    "INSERT INTO user_post_relationship(user_id, post_id, is_created) VALUES (?, ?, ?);";
+    "INSERT INTO sharing_activity(UserId, PostId, IsCreated) VALUES (?, ?, ?);";
   $stmt = mysqli_stmt_init($conn);
   if (!mysqli_stmt_prepare($stmt, $sql)) {
     header("location: ./../home.php?error=createUser");
@@ -183,7 +201,7 @@ function createPostRelationship($conn, $userId, $postId, $is_created)
 
 function createPost($conn, $userId, $title)
 {
-  $sql = "INSERT INTO posts(title, creator) VALUES (?, ?);";
+  $sql = "INSERT INTO post(Title, CreatedBy) VALUES (?, ?);";
   $stmt = mysqli_stmt_init($conn);
   if (!mysqli_stmt_prepare($stmt, $sql)) {
     header("location: ./../home.php?error=createUser");
@@ -203,19 +221,7 @@ function createPost($conn, $userId, $title)
 function getPosts($conn)
 {
   $sql =
-    "SELECT " .
-    "posts.post_id, " .
-    "posts.title, " .
-    "posts.likes, " .
-    "relation.is_created, " .
-    "creator.id as creator_id, " .
-    "CONCAT(creator.firstName, '' ,creator.lastName) as creator_name, " .
-    "CONCAT(user_activity.firstName, ' ' ,user_activity.lastName) as activity_name, " .
-    "user_activity.id as activity_id " .
-    "FROM posts as posts " .
-    "INNER JOIN users as creator ON creator.id = posts.creator " .
-    "INNER JOIN user_post_relationship as relation ON posts.post_id=relation.post_id " .
-    "INNER JOIN users as user_activity ON relation.user_id=user_activity.id ";
+    "SELECT " . "post.PostId, " . "post.title, " . "post.likes " . "FROM post ";
 
   $stmt = mysqli_stmt_init($conn);
   if (!mysqli_stmt_prepare($stmt, $sql)) {
