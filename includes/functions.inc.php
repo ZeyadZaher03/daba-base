@@ -72,6 +72,23 @@ function uidExists($conn, $email)
   mysqli_stmt_close($stmt);
 }
 
+function createLogin($conn, $email, $password)
+{
+  $sql = "INSERT INTO login(email, password) VALUES (?, ?);";
+  $stmt = mysqli_stmt_init($conn);
+  if (!mysqli_stmt_prepare($stmt, $sql)) {
+    header("location: ./../index.php?error=createUser");
+    exit();
+  }
+
+  $hashedPwd = password_hash($password, PASSWORD_DEFAULT);
+
+  mysqli_stmt_bind_param($stmt, "ss", $email, $hashedPwd);
+
+  mysqli_stmt_execute($stmt);
+  mysqli_stmt_close($stmt);
+}
+
 function createUser(
   $conn,
   $fname,
@@ -82,9 +99,11 @@ function createUser(
   $day,
   $password
 ) {
+  createLogin($conn, $email, $password);
+  $login_id = mysqli_insert_id($conn);
   $date = $year . "-" . $month . "-" . $day;
   $sql =
-    "INSERT INTO users(firstName, lastname, DOB, password, email) VALUES (?, ?, ?, ?, ?);";
+    "INSERT INTO users(firstName, lastname, DOB, password, email, login_id) VALUES (?, ?, ?, ?, ?, ?);";
   $stmt = mysqli_stmt_init($conn);
   if (!mysqli_stmt_prepare($stmt, $sql)) {
     header("location: ./../index.php?error=createUser");
@@ -95,12 +114,13 @@ function createUser(
 
   mysqli_stmt_bind_param(
     $stmt,
-    "sssss",
+    "ssssss",
     $fname,
     $lname,
     $date,
     $hashedPwd,
-    $email
+    $email,
+    $login_id
   );
 
   mysqli_stmt_execute($stmt);
@@ -222,12 +242,78 @@ function getPosts($conn)
     header("location: ./../index.php?error=uidExists");
     exit();
   }
+
   mysqli_stmt_execute($stmt);
 
   $resultData = mysqli_stmt_get_result($stmt);
 
   mysqli_stmt_close($stmt);
   return $resultData;
+}
+
+function getUsers($conn)
+{
+  $sql =
+    "SELECT CONCAT(users.firstName, '' ,users.lastName) as name, users.id FROM users";
+  $stmt = mysqli_stmt_init($conn);
+  if (!mysqli_stmt_prepare($stmt, $sql)) {
+    header("location: ./../index.php?error=uidExists");
+    exit();
+  }
+  mysqli_stmt_execute($stmt);
+
+  $resultData = mysqli_stmt_get_result($stmt);
+
+  mysqli_stmt_close($stmt);
+  return $resultData;
+}
+
+function getMessages($conn, $sender_id, $reciver_id)
+{
+  $sql =
+    "SELECT " .
+    "CONCAT(sender.firstName, '' ,sender.lastName) as sender_name, " .
+    "CONCAT(reciver.firstName, '' ,reciver.lastName) as reciver_name, " .
+    "chat.Message " .
+    "FROM chat " .
+    "JOIN users as sender on chat.User1 = sender.id " .
+    "JOIN users as reciver on chat.User2 = reciver.id " .
+    "WHERE sender.id = ? AND reciver.id = ? OR reciver.id = ? AND sender.id = ?;";
+  $stmt = mysqli_stmt_init($conn);
+  if (!mysqli_stmt_prepare($stmt, $sql)) {
+    header("location: ./../home.php?error=createUser");
+    exit();
+  }
+  mysqli_stmt_bind_param(
+    $stmt,
+    "ssss",
+    $sender_id,
+    $reciver_id,
+    $reciver_id,
+    $sender_id
+  );
+
+  mysqli_stmt_execute($stmt);
+  $resultData = mysqli_stmt_get_result($stmt);
+
+  mysqli_stmt_close($stmt);
+  return $resultData;
+}
+function createMessage($conn, $sender_id, $reciver_id, $message)
+{
+  $sql = "INSERT INTO chat(User1, User2, message) VALUES (?, ?, ?);";
+  $stmt = mysqli_stmt_init($conn);
+  if (!mysqli_stmt_prepare($stmt, $sql)) {
+    header("location: ./../home.php?error=createUser");
+    exit();
+  }
+
+  mysqli_stmt_bind_param($stmt, "sss", $sender_id, $reciver_id, $message);
+
+  mysqli_stmt_execute($stmt);
+  mysqli_stmt_close($stmt);
+  header("location: ./../chat.php?id=reciver_id");
+  exit();
 }
 
 ?>

@@ -52,6 +52,24 @@ if (empty($_SESSION["user_fname"])) {
     include_once "./includes/dbh.inc.php";
     include_once "./includes/functions.inc.php";
 
+    $resultData = getUsers($conn);
+    while ($row = mysqli_fetch_assoc($resultData)) {
+
+      $id = $row["id"];
+      $name = $row["name"];
+      if ($id == $_SESSION["user_id"]) {
+        continue;
+      }
+      ?>
+
+      <a href="chat.php?id=<?php echo $id; ?>">chat with: <?php echo $name; ?></a> </br>
+    <?php
+    }
+    ?>
+    <?php
+    include_once "./includes/dbh.inc.php";
+    include_once "./includes/functions.inc.php";
+
     $resultData = getPosts($conn);
     while ($row = mysqli_fetch_assoc($resultData)) {
 
